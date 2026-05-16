@@ -1,0 +1,4 @@
+# Dependencies for annotating Wikivir XML with CLASSLA.
+# Keep separate from requirements.txt because CLASSLA/model installs are heavier
+# than the downstream emotion/topic analysis stack.
+classla>=2.1

@@ -1,0 +1,52 @@
+# Python bytecode and test caches
+__pycache__/
+*.py[cod]
+*.pyo
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Virtual environments and local Python tooling
+.venv/
+venv/
+env/
+*.egg-info/
+.python-version
+
+# Editor and OS files
+.DS_Store
+.idea/
+.vscode/
+
+# Local scratch space
+tmp/
+
+# Top-level generated logs
+logs/
+*.log
+
+# Raw inputs, downloaded resources, and generated corpus artifacts
+data/raw/*
+!data/raw/.gitkeep
+data/annotated/*
+!data/annotated/.gitkeep
+data/lexicons/*
+!data/lexicons/.gitkeep
+data/metadata/*
+!data/metadata/.gitkeep
+
+# Generated annotation reports
+reports/*
+!reports/.gitkeep
+
+# Generated analysis outputs.
+# Keep review tables trackable by leaving analysis/**/review/ untouched.
+analysis/**/tables/
+analysis/**/plots/
+analysis/**/models/
+analysis/**/checkpoints/
+analysis/**/logs/
+analysis/**/manifest.json
+analysis/**/finish_manifest.json
+analysis/**/rescue_manifest.json
+analysis/**/report.md

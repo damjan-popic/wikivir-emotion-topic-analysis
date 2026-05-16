@@ -1,0 +1,7 @@
+-r requirements.txt
+transformers>=4.40
+torch>=2.1
+sentence-transformers>=2.7
+accelerate>=0.29
+sentencepiece>=0.1.99
+protobuf>=4.25
