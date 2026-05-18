@@ -124,6 +124,44 @@ STRUCTURAL_COMMENT_KEYS = {
 }
 DOC_METADATA_PREFIXES = ("doc_", "document_", "newdoc_")
 
+# Canonical metadata aliases for messy XML/CoNLL-U attributes.
+# These are deliberately conservative: they fix observed typos and common variants
+# without trying to infer arbitrary metadata semantics.
+METADATA_KEY_ALIASES = {
+    "gerne": "genre",
+    "genere": "genre",
+    "gendre": "genre",
+    "gernre": "genre",
+    "zvrst": "genre",
+    "vrsta": "genre",
+    "cemtury": "century",
+    "centry": "century",
+    "centruy": "century",
+    "cenutry": "century",
+    "stoletje": "century",
+    "century_": "century",
+    "yeaar": "year",
+    "yer": "year",
+    "leto": "year",
+    "date_year": "year",
+    "avtor": "author",
+    "autor": "author",
+    "auhtor": "author",
+    "writer": "author",
+    "naslov": "title",
+    "titel": "title",
+    "name": "title",
+    "pubication": "publication",
+    "publicaton": "publication",
+    "publikacija": "publication",
+    "source_url": "url",
+    "uri": "url",
+}
+
+def canonical_metadata_key(key: str) -> str:
+    key_norm = normalize_col(key)
+    return METADATA_KEY_ALIASES.get(key_norm, key_norm)
+
 GENERATED_AT = time.strftime("%Y-%m-%d %H:%M:%S")
 
 
@@ -588,13 +626,10 @@ def parse_doc_meta_value(value: str) -> dict[str, str]:
 
 
 def clean_metadata_key(key: str) -> str:
-    """Normalize a CoNLL-U comment key into a document metadata key.
+    """Normalize a CoNLL-U comment key into a canonical document metadata key.
 
-    Examples accepted by this parser:
-    - ``# title = ...`` -> ``title``
-    - ``# newdoc title = ...`` -> ``title``
-    - ``# doc_author = ...`` -> ``author``
-    - ``# document.century = ...`` -> ``century``
+    This fixes common XML attribute/comment typos such as ``gerne`` -> ``genre``
+    and ``cemtury`` -> ``century`` before anything reaches the analysis tables.
     """
     key_norm = normalize_col(key)
     if key_norm in STRUCTURAL_COMMENT_KEYS:
@@ -603,10 +638,10 @@ def clean_metadata_key(key: str) -> str:
         if key_norm.startswith(prefix) and len(key_norm) > len(prefix):
             stripped = key_norm[len(prefix):]
             if stripped not in STRUCTURAL_COMMENT_KEYS:
-                return stripped
+                return canonical_metadata_key(stripped)
     if key_norm.startswith("meta_") and len(key_norm) > 5:
-        return key_norm[5:]
-    return key_norm
+        return canonical_metadata_key(key_norm[5:])
+    return canonical_metadata_key(key_norm)
 
 
 def apply_doc_comment_to_state(
@@ -638,6 +673,66 @@ def apply_doc_comment_to_state(
         block_meta[meta_key] = value
     return None, None, None, None
 
+
+
+
+def canonicalize_document_metadata(docs: Sequence[Document], artifacts: RunArtifacts | None = None) -> None:
+    """Canonicalize metadata keys and values after CoNLL-U parsing.
+
+    If both a typo key and a canonical key are present, the non-empty canonical
+    value wins. The alias key is removed so downstream coverage tables do not
+    contain spurious columns such as ``gerne`` or ``cemtury``.
+    """
+    alias_counter: Counter[str] = Counter()
+    conflict_counter: Counter[str] = Counter()
+    for doc in docs:
+        new_meta: dict[str, Any] = {}
+        for key, value in doc.metadata.items():
+            canonical = canonical_metadata_key(key)
+            if canonical != normalize_col(key):
+                alias_counter[f"{key}->{canonical}"] += 1
+            value_s = str(value).strip() if value is not None else ""
+            if canonical in new_meta and str(new_meta[canonical]).strip() and value_s and str(new_meta[canonical]).strip() != value_s:
+                conflict_counter[canonical] += 1
+                continue
+            if value_s or canonical not in new_meta:
+                new_meta[canonical] = value
+        # Clean very common value-level issues.
+        if "century" in new_meta:
+            c = str(new_meta["century"]).strip()
+            m = re.search(r"(\d{1,2})", c)
+            if m:
+                new_meta["century"] = m.group(1)
+        if "year" in new_meta:
+            y = str(new_meta["year"]).strip()
+            m = re.search(r"(1[0-9]{3}|20[0-9]{2})", y)
+            if m:
+                new_meta["year"] = m.group(1)
+        doc.metadata = new_meta
+    if artifacts and alias_counter:
+        artifacts.add_warning("Canonicalized metadata aliases: " + ", ".join(f"{k}={v}" for k, v in alias_counter.most_common(20)))
+    if artifacts and conflict_counter:
+        artifacts.add_warning("Metadata canonicalization saw conflicting values; kept existing canonical non-empty values for: " + ", ".join(f"{k}={v}" for k, v in conflict_counter.items()))
+
+
+def tokens_between_word_span(doc: Document, first_word: Token, last_word: Token) -> list[Token]:
+    """Return original tokens, including punctuation, between two word tokens.
+
+    Window construction chooses word-token spans, but text previews must include
+    punctuation between those words. If punctuation is dropped, SpaceAfter=No on
+    words before punctuation creates unreadable previews such as ``godiPusti``.
+    """
+    out: list[Token] = []
+    active = False
+    for sent in doc.sentences:
+        for tok in sent.tokens:
+            if tok is first_word:
+                active = True
+            if active:
+                out.append(tok)
+            if tok is last_word:
+                return out
+    return [first_word, last_word] if first_word is not last_word else [first_word]
 
 def metadata_presence_summary(docs: Sequence[Document]) -> pd.DataFrame:
     counts: Counter[str] = Counter()
@@ -751,12 +846,27 @@ def has_useful_embedded_metadata(docs: Sequence[Document]) -> bool:
     return any(any(k in useful and str(v).strip() for k, v in doc.metadata.items()) for doc in docs)
 
 def reconstruct_text(tokens: Sequence[Token]) -> str:
+    """Reconstruct readable text from CoNLL-U tokens.
+
+    CoNLL-U ``SpaceAfter=No`` is respected inside a sentence, but windows often
+    concatenate tokens from many sentences or verse lines. To avoid validation
+    previews such as ``...godiPusti...`` when two sentence/line-final tokens meet,
+    force at least one space at sentence or paragraph boundaries.
+    """
     pieces: list[str] = []
+    prev: Token | None = None
     for tok in tokens:
+        if prev is not None and (tok.sent_id != prev.sent_id or tok.par_id != prev.par_id):
+            if pieces and not pieces[-1].endswith((" ", "\n")):
+                pieces.append(" ")
         pieces.append(tok.form)
         if not tok.no_space_after:
             pieces.append(" ")
-    return "".join(pieces).strip()
+        prev = tok
+    text = "".join(pieces).strip()
+    # Last-ditch readability repair for lower->upper glue across line/sentence boundaries.
+    text = re.sub(r"([a-zčšžćđ])([A-ZČŠŽĆĐ])", r"\1 \2", text)
+    return text
 
 
 def parse_conllu(path: Path, artifacts: RunArtifacts | None = None) -> list[Document]:
@@ -1030,15 +1140,17 @@ def build_segments(
             if not word_tokens:
                 continue
             if len(word_tokens) <= window_size:
-                segments.append(make_segment("window", doc, "1", word_tokens, sorted({tok.sent_id for tok in word_tokens})))
+                span_tokens = tokens_between_word_span(doc, word_tokens[0], word_tokens[-1])
+                segments.append(make_segment("window", doc, "1", span_tokens, sorted({tok.sent_id for tok in word_tokens})))
             else:
                 start = 0
                 win_i = 1
                 while start < len(word_tokens):
-                    win_tokens = word_tokens[start : start + window_size]
-                    if len(win_tokens) < max(25, window_size // 5):
+                    win_words = word_tokens[start : start + window_size]
+                    if len(win_words) < max(25, window_size // 5):
                         break
-                    segments.append(make_segment("window", doc, str(win_i), win_tokens, sorted({tok.sent_id for tok in win_tokens})))
+                    span_tokens = tokens_between_word_span(doc, win_words[0], win_words[-1])
+                    segments.append(make_segment("window", doc, str(win_i), span_tokens, sorted({tok.sent_id for tok in win_words})))
                     win_i += 1
                     start += window_step
     return segments
@@ -3391,6 +3503,7 @@ def main(argv: Sequence[str] | None = None) -> int:
 
     progress.stage_start("read CoNLL-U", str(args.input))
     docs = parse_conllu(args.input, artifacts)
+    canonicalize_document_metadata(docs, artifacts)
     if args.max_docs and args.max_docs > 0:
         docs = docs[: args.max_docs]
     if not docs:
