@@ -1,0 +1,25 @@
+{
+  "analysis_dir": "analysis/wikivir_research_v2_clean",
+  "output_dir": "analysis/wikivir_research_v2_clean/review",
+  "topic_review": {
+    "rows": 4143,
+    "score_sources": {
+      "centroid_cosine": 4143
+    }
+  },
+  "emotion_extremes": {
+    "rows": 400,
+    "min_words": 80,
+    "units": "window,document"
+  },
+  "oov_review": {
+    "rows": 402,
+    "filtered_from": 438
+  },
+  "metadata_coverage.tsv": {
+    "rows": 10
+  },
+  "lexicon_coverage.tsv": {
+    "rows": 10
+  }
+}

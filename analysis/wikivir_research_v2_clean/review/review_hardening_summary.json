@@ -1,0 +1,156 @@
+{
+  "ok": true,
+  "warnings": [],
+  "errors": [],
+  "files": {
+    "manifest": {
+      "path": "analysis/wikivir_research_v2_clean/review/review_manifest.json",
+      "exists": true,
+      "size": 481
+    },
+    "metadata": {
+      "path": "analysis/wikivir_research_v2_clean/review/metadata_coverage_review.tsv",
+      "exists": true,
+      "size": 407
+    },
+    "topic": {
+      "path": "analysis/wikivir_research_v2_clean/review/topic_label_review.tsv",
+      "exists": true,
+      "size": 6394286
+    },
+    "scores": {
+      "path": "analysis/wikivir_research_v2_clean/review/topic_segment_review_scores.tsv",
+      "exists": true,
+      "size": 270226
+    },
+    "emotion": {
+      "path": "analysis/wikivir_research_v2_clean/review/emotion_extremes_review.tsv",
+      "exists": true,
+      "size": 742711
+    },
+    "oov": {
+      "path": "analysis/wikivir_research_v2_clean/review/top_oov_content_lemmas_review.tsv",
+      "exists": true,
+      "size": 7996
+    },
+    "lexicon": {
+      "path": "analysis/wikivir_research_v2_clean/review/lexicon_coverage_review.tsv",
+      "exists": true,
+      "size": 965
+    }
+  },
+  "manifest": {
+    "analysis_dir": "analysis/wikivir_research_v2_clean",
+    "output_dir": "analysis/wikivir_research_v2_clean/review",
+    "topic_review": {
+      "rows": 4143,
+      "score_sources": {
+        "centroid_cosine": 4143
+      }
+    },
+    "emotion_extremes": {
+      "rows": 400,
+      "min_words": 80,
+      "units": "window,document"
+    },
+    "oov_review": {
+      "rows": 402,
+      "filtered_from": 438
+    },
+    "metadata_coverage.tsv": {
+      "rows": 10
+    },
+    "lexicon_coverage.tsv": {
+      "rows": 10
+    }
+  },
+  "source_xml_values": {
+    "topic.source_xml": [
+      "wikivir.cleaned.xml"
+    ],
+    "topic.source_xml_segment": [
+      "wikivir.cleaned.xml"
+    ],
+    "emotion.source_xml": [
+      "wikivir.cleaned.xml"
+    ],
+    "emotion.source_xml_segment": [
+      "wikivir.cleaned.xml"
+    ]
+  },
+  "topic_review": {
+    "rows": 4143,
+    "topics": 120,
+    "score_sources": {
+      "centroid_cosine": 4143
+    },
+    "score_summary": {
+      "min": 0.4648284152615292,
+      "median": 0.8596730969775491,
+      "max": 0.9446368673558284,
+      "zeros": 0,
+      "missing": 0
+    },
+    "glued_preview_hits": 0,
+    "topic_row_count_min": 3,
+    "topic_row_count_max": 35,
+    "topics_under_35_rows": 2
+  },
+  "topic_score_alignment": {
+    "both": 4143,
+    "left_only": 0,
+    "right_only": 0
+  },
+  "emotion_review": {
+    "rows": 400,
+    "review_emotion_counts": {
+      "emotion_anger_per_1k": 50,
+      "emotion_anticipation_per_1k": 50,
+      "emotion_disgust_per_1k": 50,
+      "emotion_fear_per_1k": 50,
+      "emotion_joy_per_1k": 50,
+      "emotion_sadness_per_1k": 50,
+      "emotion_surprise_per_1k": 50,
+      "emotion_trust_per_1k": 50
+    },
+    "unique_segment_ids": 296,
+    "duplicate_rows_by_segment_id": 104,
+    "_review_word_count_summary": {
+      "min": 80.0,
+      "median": 124.0,
+      "max": 2218.0,
+      "under_80": 0,
+      "under_50": 0
+    },
+    "word_token_count_summary": {
+      "min": 62.0,
+      "median": 93.5,
+      "max": 1791.0,
+      "under_80": 97,
+      "under_50": 0
+    },
+    "lexical_token_count_summary": {
+      "min": 25.0,
+      "median": 55.0,
+      "max": 1045.0,
+      "under_80": 260,
+      "under_50": 156
+    },
+    "lemma_token_count_summary": {
+      "min": 24.0,
+      "median": 53.5,
+      "max": 1035.0,
+      "under_80": 262,
+      "under_50": 163
+    },
+    "glued_preview_hits": 0
+  },
+  "strict_emotion": {
+    "written": "analysis/wikivir_research_v2_clean/review/emotion_extremes_review_lexical80.tsv",
+    "rows": 400,
+    "dedup_written": "analysis/wikivir_research_v2_clean/review/emotion_extremes_review_lexical80_dedup.tsv",
+    "dedup_rows": 329,
+    "min_lexical_tokens": 80,
+    "min_word_tokens": 80
+  }
+}
